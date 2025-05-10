@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/useAuthStore"; // Adjust the import path if needed
 
 export default function SignupComponent() {
   const [formData, setFormData] = useState({
@@ -7,6 +8,8 @@ export default function SignupComponent() {
     email: "",
     password: "",
   });
+
+  const { register, isLoading, error } = useAuthStore()
 
   const navigate = useNavigate();
 
@@ -18,10 +21,23 @@ export default function SignupComponent() {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    navigate("/upload");
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    // Calling signup from the store 
+    await register({
+      username: formData.username,
+      email: formData.email,
+      password: formData.password
+    });
+    navigate("/"); // Navigate to home page after successful signup
+  } catch (err) {
+    // Handle any error if signup fails
+    console.error(err);
+  }
+};
+
 
   return (
     <div className="w-full flex justify-center mb-10">
@@ -73,10 +89,13 @@ export default function SignupComponent() {
           <button
             type="submit"
             className="w-full bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144] hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161] text-white text-base py-2.5 rounded-md transition-all duration-300 shadow-[0_0_15px_5px_rgba(0,0,0,0.7)]"
+            disabled={isLoading} // Disable the button when loading
           >
-            Sign up
+            {isLoading ? "Signing up..." : "Sign up"}
           </button>
         </form>
+
+        {error && <p className="mt-4 text-center text-red-500">{error}</p>} {/* Display error if signup fails */}
 
         <p className="mt-5 text-center text-sm text-gray-400">
           Already have an account?{" "}

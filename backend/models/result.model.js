@@ -25,7 +25,7 @@ const resultSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "Photo", // Reference to the Photo model
           required: true,
-        },
+        }, 
         matchedFace: {
           type: String, // Unique identifier for the matched face, like "Face_1"
         },
@@ -41,6 +41,6 @@ const resultSchema = new mongoose.Schema(
   }
 );
 
-const Result = mongoose.model("Result", resultSchema);
+const Result = mongoose.model("Result", resultSchema);   
 
-export default Result;
+export default Result; 
