@@ -9,13 +9,13 @@ const resultSchema = new mongoose.Schema(
     },
     referenceImage: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Photo", // Reference to the Photo model, not the image itself
+      ref: "Photo",
       required: true,
     },
     poolImages: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Photo", // Reference to the Photo model
+        ref: "Photo",
         required: true,
       },
     ],
@@ -23,11 +23,11 @@ const resultSchema = new mongoose.Schema(
       {
         poolImage: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Photo", // Reference to the Photo model
+          ref: "Photo", 
           required: true,
         }, 
         matchedFace: {
-          type: String, // Unique identifier for the matched face, like "Face_1"
+          type: String, 
         },
         confidence: {
           type: Number,
@@ -37,7 +37,7 @@ const resultSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true, // Track when the result was created/updated
+    timestamps: true, 
   }
 );
 
