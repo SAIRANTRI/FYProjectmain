@@ -29,7 +29,7 @@ export default function LoginPage() {
       email: formData.email,
       password: formData.password
     });
-    navigate("/profile"); // Navigate to home page after successful signup
+    navigate("/upload"); // Navigate to home page after successful signup
   } catch (err) {
     // Handle any error if login fails
     console.error(err);
