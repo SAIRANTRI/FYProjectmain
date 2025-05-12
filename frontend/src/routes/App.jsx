@@ -1,9 +1,18 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useUserStore } from '../store/useUserStore';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import SplashImage from '../assets/Splash4Edddc9Ajpg.jpeg'; 
+import SplashImage from '../assets/Splash4Edddc9Ajpg.jpeg';
 
 function App() {
+  const { fetchProfile } = useUserStore();
+
+  // Fetch the user profile when the app initializes
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
   return (
     <div
       style={{
