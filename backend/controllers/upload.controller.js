@@ -1,4 +1,5 @@
 import { streamUpload } from '../lib/streamUpload.js'; // Importing the utility function
+import mongoose from 'mongoose';
 import Photo from '../models/photo.model.js';
 import dotenv from 'dotenv';  
 dotenv.config();
@@ -98,5 +99,27 @@ export const getUploadedImages = async (req, res) => {
   } catch (error) {
     console.error("Error fetching uploaded images:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Controller to delete an image
+export const deleteImage = async (req, res) => {
+  const { imageId } = req.params; // Assuming imageId is passed as a route parameter
+  
+  try {
+    // Validate that imageId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(imageId)) {
+      return res.status(400).json({ message: "Invalid image ID" });
+    }
+    const image = await Photo.findByIdAndDelete(imageId); // Find and delete by ObjectId
+    if (!image) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    // If the image was successfully deleted, return a success message
+    res.status(200).json({ message: "Image deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting image" });
   }
 };

@@ -1,5 +1,5 @@
 import express from "express";
-import { uploadReferenceImage, uploadPoolImages, getUploadedImages } from "../controllers/upload.controller.js";
+import { uploadReferenceImage, uploadPoolImages, getUploadedImages, deleteImage } from "../controllers/upload.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 import upload from "../middleware/multer.middleware.js";  // Import the upload middleware
 
@@ -13,5 +13,6 @@ router.post("/pool", protect, upload.array("files", 10), uploadPoolImages);
 
 // Route to fetch uploaded images
 router.get("/images", protect, getUploadedImages);
+router.delete("/delete/:imageId", protect, deleteImage);
 
 export default router;

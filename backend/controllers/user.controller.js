@@ -1,4 +1,6 @@
 import Photo from "../models/photo.model.js";
+import User from "../models/user.model.js";
+import { streamUpload } from "../lib/streamUpload.js";
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -48,7 +50,7 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
-export const uploadProfileImage = async (req, res) => { 
+export const uploadProfileImage = async (req, res) => {
   try {
     const user = req.user;
     if (!user) {
@@ -59,12 +61,11 @@ export const uploadProfileImage = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const uploadedImage = await cloudinary.v2.uploader.upload(req.file.path, {
-      folder: "profile_images",
-      public_id: user._id.toString(),
-    });
-    user.profilePicUrl = uploadedImage.secure_url;
-    user.profilePicPublicId = uploadedImage.public_id;
+    // Upload using stream
+    const result = await streamUpload(req.file.buffer, "profile_images", user._id.toString());
+
+    user.profilePicUrl = result.secure_url;
+    user.profilePicPublicId = result.public_id;
     await user.save();
 
     res.status(200).json({

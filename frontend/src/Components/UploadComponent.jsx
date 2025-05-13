@@ -10,6 +10,7 @@ export default function UploadComponent() {
     uploadReferenceImages,
     uploadPoolImages,
     fetchUploadedImages,
+    deleteImage, // <-- make sure this exists in your store
     loading,
     error,
   } = useUploadStore();
@@ -17,7 +18,6 @@ export default function UploadComponent() {
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    // Fetch uploaded images on component mount
     fetchUploadedImages();
   }, [fetchUploadedImages]);
 
@@ -43,18 +43,17 @@ export default function UploadComponent() {
     }
   };
 
-  const handleDelete = (type, index) => {
-    console.log(`Delete functionality for ${type} at index ${index} is not implemented yet.`);
+  const handleDelete = async (type, imageId) => {
+    await deleteImage(imageId, type);
   };
 
   const handleDownload = () => {
     console.log("Download results as ZIP");
   };
-
   return (
     <div className="min-h-screen text-white flex flex-col pb-28 items-center">
       <div className="w-full max-w-[1048px] p-5 flex flex-col items-center space-y-6">
-        {/* Section 1: Upload Reference Image */}
+        {/* Upload Reference Image */}
         <div className="w-full text-center">
           <h1 className="text-3xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
             Upload Reference Image
@@ -94,18 +93,18 @@ export default function UploadComponent() {
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-            {referenceImages.map((img, i) => (
+            {referenceImages.map((img) => (
               <div
-                key={i}
+                key={img._id}
                 className="relative bg-gray-800 rounded-lg overflow-hidden h-32"
               >
                 <img
-                  src={img}
-                  alt={`reference-${i}`}
+                  src={img.imageUrl}
+                  alt="reference"
                   className="w-full h-full object-cover hover:scale-105 transition"
                 />
                 <button
-                  onClick={() => handleDelete("reference", i)}
+                  onClick={() => handleDelete("reference", img._id)}
                   className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
                 >
                   <X size={16} />
@@ -115,7 +114,7 @@ export default function UploadComponent() {
           </div>
         </div>
 
-        {/* Section 2: Upload Pool Image */}
+        {/* Upload Pool Images */}
         <div className="w-full text-center">
           <h1 className="text-3xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
             Upload Pool Images
@@ -155,18 +154,18 @@ export default function UploadComponent() {
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-            {poolImages.map((img, i) => (
+            {poolImages.map((img) => (
               <div
-                key={i}
+                key={img._id}
                 className="relative bg-gray-800 rounded-lg overflow-hidden h-32"
               >
                 <img
-                  src={img}
-                  alt={`pool-${i}`}
+                  src={img.imageUrl}
+                  alt="pool"
                   className="w-full h-full object-cover hover:scale-105 transition"
                 />
                 <button
-                  onClick={() => handleDelete("pool", i)}
+                  onClick={() => handleDelete("pool", img._id)}
                   className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
                 >
                   <X size={16} />
@@ -176,7 +175,7 @@ export default function UploadComponent() {
           </div>
         </div>
 
-        {/* Section 3: Results */}
+        {/* Results Section */}
         <div className="w-full text-center">
           <h1 className="text-3xl font-extrabold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
             Results

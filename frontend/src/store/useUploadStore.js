@@ -3,9 +3,8 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
-const apiBase = import.meta.env.MODE === "development"
-  ? "http://localhost:5000/api"
-  : "/api";
+const apiBase =
+  import.meta.env.MODE === "development" ? "http://localhost:5000/api" : "/api";
 
 export const useUploadStore = create((set) => ({
   referenceImages: [],
@@ -20,9 +19,13 @@ export const useUploadStore = create((set) => ({
       const formData = new FormData();
       files.forEach((file) => formData.append("file", file));
 
-      const { data } = await axios.post(`${apiBase}/upload/reference`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await axios.post(
+        `${apiBase}/upload/reference`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
       set((state) => ({
         referenceImages: [...state.referenceImages, data.imageUrl],
@@ -31,7 +34,8 @@ export const useUploadStore = create((set) => ({
     } catch (error) {
       console.error("Error uploading reference images:", error);
       set({
-        error: error.response?.data?.message || "Failed to upload reference images",
+        error:
+          error.response?.data?.message || "Failed to upload reference images",
         loading: false,
       });
     }
@@ -67,14 +71,42 @@ export const useUploadStore = create((set) => ({
     try {
       const { data } = await axios.get(`${apiBase}/upload/images`);
       set({
-        referenceImages: data.referenceImages.map((img) => img.imageUrl),
-        poolImages: data.poolImages.map((img) => img.imageUrl),
+        referenceImages: data.referenceImages, // contains _id and imageUrl
+        poolImages: data.poolImages,
         loading: false,
       });
     } catch (error) {
       console.error("Error fetching uploaded images:", error);
       set({
-        error: error.response?.data?.message || "Failed to fetch uploaded images",
+        error:
+          error.response?.data?.message || "Failed to fetch uploaded images",
+        loading: false,
+      });
+    }
+  },
+  // Delete image
+  deleteImage: async (imageId, type) => {
+    set({ loading: true, error: null });
+    try {
+      await axios.delete(`${apiBase}/upload/delete/${imageId}`);
+
+      if (type === "reference") {
+        set((state) => ({
+          referenceImages: state.referenceImages.filter(
+            (img) => img._id !== imageId
+          ),
+          loading: false,
+        }));
+      } else {
+        set((state) => ({
+          poolImages: state.poolImages.filter((img) => img._id !== imageId),
+          loading: false,
+        }));
+      }
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      set({
+        error: error.response?.data?.message || "Failed to delete image",
         loading: false,
       });
     }
