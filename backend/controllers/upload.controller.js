@@ -1,130 +1,102 @@
-import cloudinary from 'cloudinary';
+import { streamUpload } from '../lib/streamUpload.js'; // Importing the utility function
 import Photo from '../models/photo.model.js';
-import Result from '../models/result.model.js';
+import dotenv from 'dotenv';  
+dotenv.config();
 
 // Function to upload reference image
 export const uploadReferenceImage = async (req, res) => {
   try {
-    const { file } = req.files;
+    const file = req.file;
 
-    // Check if file is uploaded
     if (!file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Upload the image to Cloudinary
-    const uploadedImage = await cloudinary.v2.uploader.upload(file.tempFilePath, {
-      folder: 'albumify/references',
-      public_id: `reference_${Date.now()}`,
-    });
+    const publicId = `reference_${Date.now()}`;
+    const folder = "albumify/references";
 
-    // Save the reference image URL and metadata in your database
+    // Use the streamUpload utility to upload the image to Cloudinary
+    const uploadedImage = await streamUpload(file.buffer, folder, publicId);
+
+    // Save the uploaded image details in the database
     const newReference = new Photo({
       userId: req.user.id,
       imageUrl: uploadedImage.secure_url,
-      imageType: 'reference',
+      imageType: "reference",
       uploadedAt: new Date(),
     });
 
     await newReference.save();
 
     res.status(200).json({
-      message: 'Reference image uploaded successfully',
+      message: "Reference image uploaded successfully",
       imageUrl: uploadedImage.secure_url,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error uploading reference image', error: error.message });
+    res.status(500).json({ message: "Error uploading reference image", error: error.message });
   }
 };
 
-// Function to upload pool images
+// Function to upload multiple pool images
 export const uploadPoolImages = async (req, res) => {
   try {
-    const { files } = req.files;
+    const files = req.files;
 
     if (!files || files.length === 0) {
-      return res.status(400).json({ message: 'No files uploaded' });
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    const referenceImage = await Photo.findOne({ userId: req.user.id, imageType: "reference" });
+
+    if (!referenceImage) {
+      return res.status(400).json({ message: "Reference image is required to upload pool images" });
     }
 
     const uploadedImages = [];
-    const referenceImage = await Photo.findOne({ userId: req.user.id, imageType: 'reference' });
 
-    if (!referenceImage) {
-      return res.status(400).json({ message: 'Reference image is required to upload pool images' });
-    }
-
-    // Loop through each uploaded image
+    // Loop through each file and upload it to Cloudinary
     for (let file of files) {
-      const uploadedImage = await cloudinary.v2.uploader.upload(file.tempFilePath, {
-        folder: 'albumify/pool_images',
-        public_id: `pool_${Date.now()}`,
-      });
+      const publicId = `pool_${Date.now()}`;
+      const folder = "albumify/pool_images";
 
-      // Save each pool image URL and metadata in your database
+      // Use the streamUpload utility to upload the image to Cloudinary
+      const uploadedImage = await streamUpload(file.buffer, folder, publicId);
+
+      // Save uploaded image details in the database
       const newPoolImage = new Photo({
         userId: req.user.id,
         imageUrl: uploadedImage.secure_url,
-        imageType: 'pool',
+        imageType: "pool",
         uploadedAt: new Date(),
-        referenceId: referenceImage._id,  // Link the pool image with the reference image
+        referenceId: referenceImage._id,
       });
 
       await newPoolImage.save();
       uploadedImages.push(uploadedImage.secure_url);
-
-      // Generate result only if this pool image is new
-      const existingResult = await Result.findOne({ user: req.user.id, referenceImage: referenceImage._id });
-
-      if (!existingResult) {
-        await generateResultForUser(req.user.id, referenceImage._id);
-      }
     }
 
     res.status(200).json({
-      message: 'Pool images uploaded successfully',
+      message: "Pool images uploaded successfully",
       images: uploadedImages,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error uploading pool images', error: error.message });
+    res.status(500).json({ message: "Error uploading pool images", error: error.message });
   }
 };
 
-// Function to generate result based on the pool image
-const generateResultForUser = async (userId, referenceId) => {
+// Get all uploaded images
+export const getUploadedImages = async (req, res) => {
   try {
-    const referenceImage = await Photo.findOne({ userId, imageType: 'reference', _id: referenceId });
-    const poolImages = await Photo.find({ userId, imageType: 'pool', referenceId: referenceId });
+    const userId = req.user.id;
 
-    if (!referenceImage || poolImages.length === 0) {
-      throw new Error('Reference image or pool images missing');
-    }
+    const referenceImages = await Photo.find({ userId, imageType: "reference" });
+    const poolImages = await Photo.find({ userId, imageType: "pool" });
 
-    const matchedPhotos = [];
-
-    // Loop through the pool images and apply match logic
-    for (const image of poolImages) {
-      // Mock match logic: ObjectId timestamp is even (for testing purposes)
-      const timestamp = parseInt(image._id.toString().substring(0, 8), 16);
-      if (timestamp % 2 === 0) {
-        matchedPhotos.push(image._id);
-      }
-    }
-
-    if (matchedPhotos.length > 0) {
-      const newResult = new Result({
-        user: userId,
-        referenceImage: referenceImage._id,  // Link the result with the reference image
-        poolImages: matchedPhotos,  // Store matched pool images
-        label: 'Matches Found',
-        confidence: 0.95,  // Mock confidence
-      });
-
-      await newResult.save();
-    }
+    res.status(200).json({ referenceImages, poolImages });
   } catch (error) {
-    console.error(error);
-    throw new Error('Error generating result for user');
+    console.error("Error fetching uploaded images:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
