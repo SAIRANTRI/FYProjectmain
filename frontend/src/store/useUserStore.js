@@ -3,9 +3,8 @@ import axios from "axios";
 
 axios.defaults.withCredentials = true;
 
-const api = import.meta.env.MODE === "development"
-  ? "http://localhost:5000/api"
-  : "/api";
+const api =
+  import.meta.env.MODE === "development" ? "http://localhost:5000/api" : "/api";
 
 export const useUserStore = create((set) => ({
   user: null,
@@ -21,7 +20,10 @@ export const useUserStore = create((set) => ({
       set({ user: data, loading: false });
     } catch (error) {
       console.error("Error in fetchProfile:", error);
-      set({ error: error.response?.data?.message || "Failed to fetch profile", loading: false });
+      set({
+        error: error.response?.data?.message || "Failed to fetch profile",
+        loading: false,
+      });
     }
   },
 
@@ -33,7 +35,10 @@ export const useUserStore = create((set) => ({
       set({ history: data, loading: false });
     } catch (error) {
       console.error("Error in fetchHistory:", error);
-      set({ error: error.response?.data?.message || "Failed to fetch history", loading: false });
+      set({
+        error: error.response?.data?.message || "Failed to fetch history",
+        loading: false,
+      });
     }
   },
 
@@ -41,11 +46,17 @@ export const useUserStore = create((set) => ({
   updateProfile: async (updatedData) => {
     try {
       set({ loading: true });
-      const { data } = await axios.patch(`${api}/users/update-profile`, updatedData);
+      const { data } = await axios.patch(
+        `${api}/users/update-profile`,
+        updatedData
+      );
       set({ user: data.user, loading: false });
     } catch (error) {
       console.error("Error in updateProfile:", error);
-      set({ error: error.response?.data?.message || "Failed to update profile", loading: false });
+      set({
+        error: error.response?.data?.message || "Failed to update profile",
+        loading: false,
+      });
     }
   },
 
@@ -57,12 +68,16 @@ export const useUserStore = create((set) => ({
         headers: { "Content-Type": "multipart/form-data" },
       });
       set((state) => ({
-        user: { ...state.user, profileImage: data.profileImage },
+        user: { ...state.user, profilePicUrl: data.profilePicUrl },
         loading: false,
       }));
     } catch (error) {
       console.error("Error in uploadProfileImage:", error);
-      set({ error: error.response?.data?.message || "Failed to upload profile image", loading: false });
+      set({
+        error:
+          error.response?.data?.message || "Failed to upload profile image",
+        loading: false,
+      });
     }
   },
 

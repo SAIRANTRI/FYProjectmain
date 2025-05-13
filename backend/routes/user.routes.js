@@ -11,4 +11,5 @@ router.get('/history', protect, getUserUploadHistory);
 router.patch('/update-profile', protect, updateUserProfile);
 router.put('/profile-image', protect, upload.single('image'), uploadProfileImage);
 
+
 export default router;

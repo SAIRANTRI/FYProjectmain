@@ -7,6 +7,14 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
+  profilePicUrl: {
+    type: String,
+    default: "", // Default profile picture URL
+  },
+  profilePicPublicId: {
+    type: String,
+    default: "", // Default public ID for the profile picture
+  },
   email: {
     type: String,
     required: true,
