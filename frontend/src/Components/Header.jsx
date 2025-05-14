@@ -11,8 +11,8 @@ const Header = () => {
 
   const navItems = [
     { title: "Home", path: "/" },
-    { title: "Upload", path: "/upload" },
-    { title: "Profile", path: "/profile" },
+    { title: "Upload", path: "/signup" },
+    { title: "Profile", path: "/login" },
   ];
 
   const handleNavigation = (navTitle, path) => {
