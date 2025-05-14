@@ -10,12 +10,18 @@ export default function UploadComponent() {
     uploadReferenceImages,
     uploadPoolImages,
     fetchUploadedImages,
-    deleteImage, // <-- make sure this exists in your store
+    deleteImage,
+    processImages,
+    getProcessingResults,
+    downloadResults,
     loading,
     error,
   } = useUploadStore();
 
   const [isDragging, setIsDragging] = useState(false);
+  const [taskId, setTaskId] = useState(null);
+  const [processingStatus, setProcessingStatus] = useState(null);
+  const [processingResults, setProcessingResults] = useState(null);
 
   useEffect(() => {
     fetchUploadedImages();
@@ -47,8 +53,51 @@ export default function UploadComponent() {
     await deleteImage(imageId, type);
   };
 
-  const handleDownload = () => {
-    console.log("Download results as ZIP");
+  const handleDownload = async () => {
+    if (!referenceImages.length || !poolImages.length) {
+      alert("Please upload at least one reference image and one pool image");
+      return;
+    }
+
+    if (taskId && processingResults) {
+      // If we already have results, just download them
+      downloadResults(taskId);
+      return;
+    }
+
+    // Start processing
+    setProcessingStatus("processing");
+    const newTaskId = await processImages();
+    
+    if (newTaskId) {
+      setTaskId(newTaskId);
+      
+      // Poll for results every 2 seconds
+      const intervalId = setInterval(async () => {
+        try {
+          const results = await getProcessingResults(newTaskId);
+          
+          if (results) {
+            setProcessingResults(results);
+            setProcessingStatus("completed");
+            clearInterval(intervalId);
+            
+            // Auto-download when complete
+            downloadResults(newTaskId);
+          }
+        } catch (error) {
+          console.error("Error polling for results:", error);
+        }
+      }, 2000);
+      
+      // Stop polling after 5 minutes (300 seconds) to prevent infinite polling
+      setTimeout(() => {
+        clearInterval(intervalId);
+        if (processingStatus === "processing") {
+          setProcessingStatus("timeout");
+        }
+      }, 300000);
+    }
   };
   return (
     <div className="min-h-screen text-white flex flex-col pb-28 items-center">
@@ -181,7 +230,47 @@ export default function UploadComponent() {
             Results
           </h1>
           <div className="bg-gray-800 p-6 rounded-lg text-center">
-            <p className="text-lg">Results will be displayed here.</p>
+            {processingStatus === "processing" ? (
+              <p className="text-lg">Processing images... Please wait.</p>
+            ) : processingStatus === "completed" && processingResults ? (
+              <div>
+                <p className="text-lg mb-4">Processing completed!</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-xl mb-2 text-green-400">Matched Images: {processingResults.matchedImages.length}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {processingResults.matchedImages.map((img) => (
+                        <div key={img.imageId} className="bg-gray-700 p-2 rounded">
+                          <img
+                            src={img.imageUrl}
+                            alt="matched"
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-xl mb-2 text-red-400">Unmatched Images: {processingResults.unmatchedImages.length}</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {processingResults.unmatchedImages.map((img) => (
+                        <div key={img.imageId} className="bg-gray-700 p-2 rounded">
+                          <img
+                            src={img.imageUrl}
+                            alt="unmatched"
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : processingStatus === "timeout" ? (
+              <p className="text-lg text-red-400">Processing timed out. Please try again.</p>
+            ) : (
+              <p className="text-lg">Results will be displayed here.</p>
+            )}
           </div>
         </div>
 

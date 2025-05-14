@@ -58,12 +58,12 @@ cloudinary_connector = None
 
 # Pydantic models for request/response
 class ImageInfo(BaseModel):
-    imageId: str
+    _id: str
     imageUrl: str
+    imageType: str
 
 class ClassificationRequest(BaseModel):
-    referenceImage: ImageInfo
-    imagesToClassify: List[ImageInfo]
+    userId: str
 
 class ClassificationResult(BaseModel):
     taskId: str
@@ -114,14 +114,13 @@ async def shutdown_event():
 async def root():
     return {"message": "Face Recognition API is running"}
 
-@app.post("/classify-images/", response_model=ProcessingStatus)
-async def classify_images(
+@app.post("/process-images/", response_model=ProcessingStatus)
+async def process_images(
     background_tasks: BackgroundTasks,
     request: ClassificationRequest = Body(...),
 ):
     """
-    Classify images from Cloudinary based on similarity to reference image
-    and store results in MongoDB
+    Process images for a specific user based on their uploaded reference and pool images
     """
     try:
         # Create unique task ID
@@ -133,28 +132,27 @@ async def classify_images(
         os.makedirs(task_input_dir, exist_ok=True)
         os.makedirs(task_output_dir, exist_ok=True)
         
-        # Add classification task to background tasks
+        # Add processing task to background tasks
         background_tasks.add_task(
-            process_classification_task,
+            process_user_images,
             task_id=task_id,
-            reference_image=request.referenceImage,
-            images_to_classify=request.imagesToClassify,
+            user_id=request.userId,
             input_dir=str(task_input_dir),
             output_dir=str(task_output_dir)
         )
         
         return {
             "status": "processing",
-            "message": f"Classification task started with {len(request.imagesToClassify)} images",
+            "message": "Image processing task started",
             "taskId": task_id
         }
     except Exception as e:
-        logger.error(f"Error starting classification task: {e}")
+        logger.error(f"Error starting processing task: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/classification-result/{task_id}", response_model=ClassificationResult)
-async def get_classification_result(task_id: str):
-    """Get the results of a classification task from MongoDB"""
+@app.get("/processing-result/{task_id}", response_model=ClassificationResult)
+async def get_processing_result(task_id: str):
+    """Get the results of a processing task from MongoDB"""
     try:
         result = db_connector.get_classification_result(task_id)
         
@@ -172,7 +170,7 @@ async def get_classification_result(task_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error retrieving classification result: {e}")
+        logger.error(f"Error retrieving processing result: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/download-results/{task_id}")
@@ -189,28 +187,47 @@ async def download_results(task_id: str):
         media_type="application/zip"
     )
 
-async def process_classification_task(
+async def process_user_images(
     task_id: str, 
-    reference_image: ImageInfo,
-    images_to_classify: List[ImageInfo],
+    user_id: str,
     input_dir: str, 
     output_dir: str
 ):
-    """Background task to process classification using Cloudinary images"""
+    """Background task to process user's images from MongoDB/Cloudinary"""
     try:
+        # Fetch user's images from MongoDB
+        user_images = db_connector.get_user_images(user_id)
+        
+        if not user_images:
+            raise Exception(f"No images found for user ID: {user_id}")
+        
+        # Separate reference and pool images
+        reference_images = [img for img in user_images if img["imageType"] == "reference"]
+        pool_images = [img for img in user_images if img["imageType"] == "pool"]
+        
+        if not reference_images:
+            raise Exception("No reference images found")
+        
+        if not pool_images:
+            raise Exception("No pool images found")
+        
+        # Use the first reference image (or you could implement logic to select a specific one)
+        reference_image = reference_images[0]
+        
         # Download reference image
         reference_path = os.path.join(UPLOAD_DIR, task_id, f"reference.jpg")
-        success = cloudinary_connector.download_image(reference_image.imageUrl, reference_path)
+        success = cloudinary_connector.download_image(reference_image["imageUrl"], reference_path)
         
         if not success:
-            raise Exception(f"Failed to download reference image: {reference_image.imageUrl}")
+            raise Exception(f"Failed to download reference image: {reference_image['imageUrl']}")
         
-        # Download images to classify
-        for img in images_to_classify:
-            img_path = os.path.join(input_dir, f"{img.imageId}.jpg")
-            success = cloudinary_connector.download_image(img.imageUrl, img_path)
+        # Download pool images - ensure filenames match the expected format in main.py
+        for img in pool_images:
+            # Use the MongoDB _id as the filename to ensure uniqueness
+            img_path = os.path.join(input_dir, f"{img['_id']}.jpg")
+            success = cloudinary_connector.download_image(img["imageUrl"], img_path)
             if not success:
-                logger.warning(f"Failed to download image: {img.imageUrl}")
+                logger.warning(f"Failed to download image: {img['imageUrl']}")
         
         # Run classification
         matched_files, unmatched_files = classifier.classify_images(
@@ -223,17 +240,17 @@ async def process_classification_task(
         zip_path = os.path.join(output_dir, "classified_images.zip")
         classifier.create_output_zip(output_dir, zip_path)
         
-        # Prepare data for MongoDB
+        # Prepare data for MongoDB - ensure we're matching the correct files
         matched_images = []
         for filename in matched_files:
             # Extract image ID from filename (remove extension)
-            image_id = os.path.splitext(filename)[0]
+            image_id = os.path.splitext(os.path.basename(filename))[0]
             # Find original image info
-            original_image = next((img for img in images_to_classify if img.imageId == image_id), None)
+            original_image = next((img for img in pool_images if str(img["_id"]) == image_id), None)
             if original_image:
                 matched_images.append({
-                    "imageId": original_image.imageId,
-                    "imageUrl": original_image.imageUrl,
+                    "imageId": original_image["_id"],
+                    "imageUrl": original_image["imageUrl"],
                     "confidence": 1.0,  # You could add actual confidence scores if available
                     "processedAt": datetime.now().isoformat()
                 })
@@ -241,21 +258,21 @@ async def process_classification_task(
         unmatched_images = []
         for filename in unmatched_files:
             # Extract image ID from filename (remove extension)
-            image_id = os.path.splitext(filename)[0]
+            image_id = os.path.splitext(os.path.basename(filename))[0]
             # Find original image info
-            original_image = next((img for img in images_to_classify if img.imageId == image_id), None)
+            original_image = next((img for img in pool_images if str(img["_id"]) == image_id), None)
             if original_image:
                 unmatched_images.append({
-                    "imageId": original_image.imageId,
-                    "imageUrl": original_image.imageUrl,
+                    "imageId": original_image["_id"],
+                    "imageUrl": original_image["imageUrl"],
                     "processedAt": datetime.now().isoformat()
                 })
         
         # Save results to MongoDB
         db_connector.save_classification_result(
             task_id=task_id,
-            reference_image_id=reference_image.imageId,
-            reference_image_url=reference_image.imageUrl,
+            reference_image_id=reference_image["_id"],
+            reference_image_url=reference_image["imageUrl"],
             matched_images=matched_images,
             unmatched_images=unmatched_images
         )
@@ -263,8 +280,8 @@ async def process_classification_task(
         # Also save results to local JSON file for backup
         result = {
             "taskId": task_id,
-            "referenceImageId": reference_image.imageId,
-            "referenceImageUrl": reference_image.imageUrl,
+            "referenceImageId": reference_image["_id"],
+            "referenceImageUrl": reference_image["imageUrl"],
             "matchedImages": matched_images,
             "unmatchedImages": unmatched_images,
             "processedAt": datetime.now().isoformat()
@@ -273,9 +290,12 @@ async def process_classification_task(
         with open(os.path.join(output_dir, "result.json"), "w") as f:
             json.dump(result, f)
             
-        logger.info(f"Classification task {task_id} completed successfully")
+        logger.info(f"Processing task {task_id} completed successfully")
     except Exception as e:
-        logger.error(f"Error in classification task {task_id}: {e}")
+        logger.error(f"Error in processing task {task_id}: {e}")
         # Save error to result file
         with open(os.path.join(output_dir, "result.json"), "w") as f:
             json.dump({"error": str(e)}, f)
+
+if __name__ == "__main__":
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)

@@ -112,6 +112,59 @@ export const useUploadStore = create((set) => ({
     }
   },
 
-  // Clear error
   clearError: () => set({ error: null }),
+
+  processImages: async () => {
+    set({ loading: true, error: null });
+    try {
+      const { data } = await axios.post(`${apiBase}/model/process-images`);
+    
+      set({
+        taskId: data.taskId,
+        processingStatus: data.status,
+        loading: false,
+      });
+    
+      return data.taskId;
+    } catch (error) {
+      console.error("Error processing images:", error);
+      set({
+        error: error.response?.data?.message || "Failed to process images",
+        loading: false,
+      });
+      return null;
+    }
+  },
+
+  getProcessingResults: async (taskId) => {
+    set({ loading: true, error: null });
+    try {
+      const { data } = await axios.get(`${apiBase}/model/processing-result/${taskId}`);
+    
+      set({
+        processingResults: data.result,
+        loading: false,
+      });
+    
+      return data.result;
+    } catch (error) {
+      console.error("Error getting processing results:", error);
+      set({
+        error: error.response?.data?.message || "Failed to get processing results",
+        loading: false,
+      });
+      return null;
+    }
+  },
+
+  downloadResults: (taskId) => {
+    const downloadUrl = `${apiBase}/model/download-results/${taskId}`;
+    
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', 'classified_images.zip');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 }));
