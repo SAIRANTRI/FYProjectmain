@@ -201,7 +201,7 @@ export default function UploadComponent() {
         <div className="w-full mt-8 text-center">
           <div
             onClick={handleDownload}
-            className="flex items-center px-4 py-2 rounded bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144] hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161] text-sm cursor-pointer transition-all duration-300 shadow-[0_0_15px_5px_rgba(0,0,0,0.7)]"
+            className="flex items-center justify-center px-4 py-2 rounded bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144] hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161] text-sm cursor-pointer transition-all duration-300 shadow-[0_0_15px_5px_rgba(0,0,0,0.7)]"
           >
             <span className="text-gray-200 mr-2">Download</span>
             <img

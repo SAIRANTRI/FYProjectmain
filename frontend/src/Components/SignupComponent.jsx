@@ -31,7 +31,7 @@ export default function SignupComponent() {
       email: formData.email,
       password: formData.password
     });
-    navigate("/"); // Navigate to home page after successful signup
+    navigate("/upload"); // Navigate to home page after successful signup
   } catch (err) {
     // Handle any error if signup fails
     console.error(err);
