@@ -28,6 +28,9 @@ const resultSchema = new mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        imageUrl: {
+          type: String,
+        },
       },
     ],
     unmatchedImages: [
@@ -40,6 +43,9 @@ const resultSchema = new mongoose.Schema(
         processedAt: {
           type: Date,
           default: Date.now,
+        },
+        imageUrl: {
+          type: String,
         },
       },
     ],

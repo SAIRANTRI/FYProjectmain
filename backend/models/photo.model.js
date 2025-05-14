@@ -7,6 +7,10 @@ const photoSchema = new mongoose.Schema(
       ref: 'User', 
       required: true,
     },
+    publicId: {
+      type: String,
+      required: true,
+    },
     imageUrl: {
       type: String,
       required: true,
