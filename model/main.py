@@ -1,6 +1,4 @@
-import sys
 import os
-from pathlib import Path
 import cv2
 import shutil
 import time
@@ -8,8 +6,9 @@ import torch
 import tensorflow as tf
 from typing import List, Tuple, Dict, Optional
 import numpy as np
-from model.preprocessingUnit import FacePreprocessor
-from model.model import FaceRecognitionModel, ModelConfig
+from pathlib import Path
+from preprocessingUnit import FacePreprocessor
+from model import FaceRecognitionModel, ModelConfig
 import zipfile
 import logging
 from sklearn.metrics.pairwise import cosine_similarity
@@ -377,13 +376,12 @@ class FaceClassifier:
             self.logger.info(f"Visualization saved to {save_dir}")
 
 
-def main(input_dir=None, reference_image=None, output_dir=None, output_zip=None, model_path=None):
-    # Use provided parameters or defaults
-    input_dir = input_dir or "../inputCluster/"
-    reference_image = reference_image or "../RAJ_4024.JPG"
-    output_dir = output_dir or "../"
-    output_zip = output_zip or "classified_images.zip"
-    model_path = model_path or os.environ.get("MODEL_PATH", "path/to/model/weights.h5")
+def main():
+    input_dir = "../inputCluster/"
+    reference_image = "../RAJ_4024.JPG"
+    output_dir = "../"
+    output_zip = "classified_images.zip"
+    model_path = "path/to/model/weights.h5"
     
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
@@ -426,8 +424,6 @@ def main(input_dir=None, reference_image=None, output_dir=None, output_zip=None,
         print(f"Total matched images: {len(matched)}")
         print(f"Total unmatched images: {len(unmatched)}")
         print(f"\nResults have been saved to {output_zip}")
-        
-        return matched, unmatched
 
     except Exception as e:
         print(f"Error: {str(e)}")
@@ -438,7 +434,3 @@ def main(input_dir=None, reference_image=None, output_dir=None, output_zip=None,
 
 if __name__ == "__main__":
     main()
-
-# Add the parent directory to sys.path if running as script
-# if __name__ == "__main__":
-#     sys.path.append(str(Path(__file__).parent.parent))
