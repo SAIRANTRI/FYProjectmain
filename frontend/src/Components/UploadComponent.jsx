@@ -10,12 +10,13 @@ export default function UploadComponent() {
     uploadReferenceImages,
     uploadPoolImages,
     fetchUploadedImages,
-    deleteImage, // <-- make sure this exists in your store
+    deleteImage,
     loading,
-    error,
   } = useUploadStore();
 
   const [isDragging, setIsDragging] = useState(false);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [classificationError, setClassificationError] = useState(null);
 
   useEffect(() => {
     fetchUploadedImages();
@@ -47,9 +48,78 @@ export default function UploadComponent() {
     await deleteImage(imageId, type);
   };
 
-  const handleDownload = () => {
-    console.log("Download results as ZIP");
+  const handleDownload = async () => {
+    // Check if we have both reference and pool images
+    if (referenceImages.length === 0) {
+      setClassificationError("Please upload a reference image");
+      return;
+    }
+
+    if (poolImages.length === 0) {
+      setClassificationError("Please upload at least one pool image");
+      return;
+    }
+
+    try {
+      setIsClassifying(true);
+      setClassificationError(null);
+
+      // Create FormData object
+      const formData = new FormData();
+      
+      // Get the reference image
+      const referenceImage = referenceImages[0];
+      
+      // Fetch the reference image file
+      const referenceResponse = await fetch(referenceImage.imageUrl);
+      const referenceBlob = await referenceResponse.blob();
+      formData.append('reference_image', new File([referenceBlob], 'reference.jpg', { type: 'image/jpeg' }));
+      
+      // Fetch and append all pool images
+      for (let i = 0; i < poolImages.length; i++) {
+        const poolImage = poolImages[i];
+        const poolResponse = await fetch(poolImage.imageUrl);
+        const poolBlob = await poolResponse.blob();
+        formData.append('pool_images', new File([poolBlob], `pool_${i}.jpg`, { type: 'image/jpeg' }));
+      }
+      
+      // Add user ID
+      formData.append('user_id', localStorage.getItem('userId') || 'anonymous');
+      
+      // Send request to FastAPI backend
+      const response = await fetch('http://localhost:8000/api/classify/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Classification failed');
+      }
+      
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'classified_images.zip';
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      setIsClassifying(false);
+    } catch (error) {
+      console.error('Error during classification:', error);
+      setClassificationError(error.message || 'Failed to classify images');
+      setIsClassifying(false);
+    }
   };
+
   return (
     <div className="min-h-screen text-white flex flex-col pb-28 items-center">
       <div className="w-full max-w-[1048px] p-5 flex flex-col items-center space-y-6">
@@ -181,12 +251,20 @@ export default function UploadComponent() {
             Results
           </h1>
           <div className="bg-gray-800 p-6 rounded-lg text-center">
-            <p className="text-lg">Results will be displayed here.</p>
+            {classificationError ? (
+              <p className="text-red-400">{classificationError}</p>
+            ) : (
+              <p className="text-lg">
+                {isClassifying 
+                  ? "Processing images... Please wait." 
+                  : "Click the Download button below to classify and download results."}
+              </p>
+            )}
           </div>
         </div>
 
         {/* Progress Bar */}
-        {loading && (
+        {(loading || isClassifying) && (
           <div className="w-full max-w-[1048px] mt-8">
             <div className="w-full h-2 bg-gray-800 rounded-full">
               <div
@@ -199,17 +277,24 @@ export default function UploadComponent() {
 
         {/* Download Section */}
         <div className="w-full mt-8 text-center">
-          <div
+          <button
             onClick={handleDownload}
-            className="flex items-center justify-center px-4 py-2 rounded bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144] hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161] text-sm cursor-pointer transition-all duration-300 shadow-[0_0_15px_5px_rgba(0,0,0,0.7)]"
+            disabled={loading || isClassifying || referenceImages.length === 0 || poolImages.length === 0}
+            className={`flex items-center justify-center px-4 py-2 rounded bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144] hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161] text-sm cursor-pointer transition-all duration-300 shadow-[0_0_15px_5px_rgba(0,0,0,0.7)] ${
+              (loading || isClassifying || referenceImages.length === 0 || poolImages.length === 0) 
+                ? "opacity-50 cursor-not-allowed" 
+                : ""
+            }`}
           >
-            <span className="text-gray-200 mr-2">Download</span>
+            <span className="text-gray-200 mr-2">
+              {isClassifying ? "Processing..." : "Download Results"}
+            </span>
             <img
               src={downloadIcon}
               className="w-[9.2px] h-[5.7px] rotate-[-90deg]"
               alt="download"
             />
-          </div>
+          </button>
         </div>
       </div>
     </div>

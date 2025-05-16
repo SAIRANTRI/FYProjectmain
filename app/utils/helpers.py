@@ -44,3 +44,22 @@ def prepare_classification_result(
     }
     
     return result
+
+def save_uploaded_file(upload_file, destination_path):
+    """
+    Save an uploaded file to the specified path
+    
+    Args:
+        upload_file: FastAPI UploadFile
+        destination_path: Path to save the file
+        
+    Returns:
+        Path to the saved file
+    """
+    try:
+        with open(destination_path, "wb") as buffer:
+            shutil.copyfileobj(upload_file.file, buffer)
+        return destination_path
+    except Exception as e:
+        logger.error(f"Error saving uploaded file: {str(e)}")
+        raise

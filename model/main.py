@@ -18,7 +18,7 @@ import concurrent.futures
 class FaceClassifier:
     def __init__(self,
                  model_path: str = None,
-                 similarity_threshold: float = 0.85,
+                 similarity_threshold: float = 0.80,
                  device: str = 'cuda:0',
                  embedding_dim: int = 512,
                  use_arcface: bool = True):
@@ -208,6 +208,23 @@ class FaceClassifier:
         self.logger.info(f"Matched: {len(matched_files)}, Unmatched: {len(unmatched_files)}")
 
         return matched_files, unmatched_files
+
+    def classify_images_from_directory(self,
+                                  input_dir: str,
+                                  reference_image_path: str,
+                                  output_dir: str) -> Tuple[List[str], List[str]]:
+        """
+        Classify images from a directory based on similarity to reference image
+        
+        Args:
+            input_dir: Directory containing input images
+            reference_image_path: Path to reference image
+            output_dir: Directory to save classified images
+            
+        Returns:
+            Tuple of (matched_files, unmatched_files)
+        """
+        return self.classify_images(input_dir, reference_image_path, output_dir)
 
     def _process_single_image(self, image_path: str, reference_embedding: np.ndarray) -> bool:
         """

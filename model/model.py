@@ -17,7 +17,7 @@ class ModelConfig:
     l2_regularization: float = 0.01
     batch_norm_momentum: float = 0.99
     learning_rate: float = 0.001
-    base_model_type: str = "resnet50"  # Options: "resnet50", "efficientnet", "custom"
+    base_model_type: str = "efficientnet"  # Options: "resnet50", "efficientnet", "custom"
     use_attention: bool = True  # Use attention mechanism for better feature extraction
     use_arcface: bool = True  # Use ArcFace loss for better face recognition
     margin: float = 0.5  # Margin for triplet/arcface loss

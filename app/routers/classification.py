@@ -1,9 +1,12 @@
 import os
 import logging
 import shutil
+import tempfile
 from typing import List, Dict, Any
 from datetime import datetime
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends, UploadFile, File, Form
+from fastapi.responses import FileResponse
 from app.models.schemas import ClassificationRequest, ClassificationResponse, MatchedPhoto, UnmatchedPhoto
 from app.services.mongodb import get_photo_by_id, get_photos_by_ids, save_classification_result
 from app.services.cloudinary import download_image
@@ -184,3 +187,90 @@ async def get_classification_result(task_id: str):
     except Exception as e:
         logger.error(f"Error in get_classification_result: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/classify/upload")
+async def classify_uploaded_images(
+    reference_image: UploadFile = File(...),
+    pool_images: List[UploadFile] = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Process uploaded images and return a ZIP file with classification results
+    
+    Args:
+        reference_image: Reference image file
+        pool_images: List of pool image files
+        user_id: User ID
+        
+    Returns:
+        ZIP file containing classified images
+    """
+    try:
+        logger.info(f"Received classification request with {len(pool_images)} pool images")
+        
+        # Create temporary directories
+        temp_dir = create_temp_directory()
+        input_dir = create_temp_directory("temp_input_pool")  # Separate directory for pool images only
+        output_dir = create_temp_directory("temp_output")
+        
+        try:
+            # Save reference image (not in the input_dir)
+            reference_path = os.path.join(temp_dir, f"reference_{reference_image.filename}")
+            with open(reference_path, "wb") as f:
+                f.write(await reference_image.read())
+            
+            logger.info(f"Saved reference image to {reference_path}")
+            
+            # Save pool images to the input_dir (separate from reference)
+            pool_paths = []
+            for pool_image in pool_images:
+                pool_path = os.path.join(input_dir, f"pool_{pool_image.filename}")
+                with open(pool_path, "wb") as f:
+                    f.write(await pool_image.read())
+                pool_paths.append(pool_path)
+            
+            logger.info(f"Saved {len(pool_paths)} pool images to input directory")
+            
+            # Run classification - using input_dir which contains only pool images
+            matched_files, unmatched_files = classifier_service.classifier.classify_images(
+                input_dir=input_dir,  # Only contains pool images
+                reference_image_path=reference_path,
+                output_dir=output_dir
+            )
+            
+            logger.info(f"Classification completed. Matched: {len(matched_files)}, Unmatched: {len(unmatched_files)}")
+            
+            # Create ZIP file
+            zip_path = os.path.join(tempfile.gettempdir(), f"classified_images_{generate_task_id()}.zip")
+            classifier_service.classifier.create_output_zip(output_dir, zip_path)
+            
+            logger.info(f"Created ZIP file at {zip_path}")
+            
+            # Return ZIP file as response
+            return FileResponse(
+                path=zip_path,
+                filename="classified_images.zip",
+                media_type="application/zip",
+                background=BackgroundTasks().add_task(cleanup_files, temp_dir, input_dir, output_dir, zip_path)
+            )
+            
+        except Exception as e:
+            # Clean up in case of error
+            cleanup_files(temp_dir, input_dir, output_dir)
+            logger.error(f"Error in classification: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Classification failed: {str(e)}")
+            
+    except Exception as e:
+        logger.error(f"Error processing uploaded files: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def cleanup_files(*paths):
+    """Clean up temporary files and directories"""
+    for path in paths:
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            elif os.path.isfile(path):
+                os.remove(path)
+        except Exception as e:
+            logger.error(f"Error cleaning up {path}: {str(e)}")

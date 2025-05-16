@@ -9,7 +9,7 @@ const router = express.Router();
 router.post("/reference", protect, upload.single("file"), uploadReferenceImage);
 
 // Route to upload pool images (multiple files upload)
-router.post("/pool", protect, upload.array("files", 10), uploadPoolImages);
+router.post("/pool", protect, upload.array("files"), uploadPoolImages);
 
 // Route to fetch uploaded images
 router.get("/images", protect, getUploadedImages);

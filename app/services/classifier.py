@@ -142,3 +142,44 @@ class ClassifierService:
         except Exception as e:
             logger.error(f"Error in classify_images: {str(e)}")
             raise
+
+    async def classify_images_from_files(self,
+                                   reference_image_path: str,
+                                   pool_image_paths: List[str],
+                                   output_dir: str) -> Tuple[List[str], List[str]]:
+        """
+        Classify images from file paths
+        
+        Args:
+            reference_image_path: Path to reference image
+            pool_image_paths: List of paths to pool images
+            output_dir: Directory to save classified images
+            
+        Returns:
+            Tuple of (matched_files, unmatched_files)
+        """
+        try:
+            # Create input directory
+            input_dir = create_temp_directory("temp_input_files")
+            
+            # Copy pool images to input directory
+            for path in pool_image_paths:
+                filename = os.path.basename(path)
+                dest_path = os.path.join(input_dir, filename)
+                shutil.copy2(path, dest_path)
+            
+            # Classify images
+            matched_files, unmatched_files = self.classifier.classify_images(
+                input_dir=input_dir,
+                reference_image_path=reference_image_path,
+                output_dir=output_dir
+            )
+            
+            # Clean up
+            self.cleanup_temp_dir(input_dir)
+            
+            return matched_files, unmatched_files
+            
+        except Exception as e:
+            logger.error(f"Error in classify_images_from_files: {str(e)}")
+            raise
