@@ -7,8 +7,8 @@ from typing import List, Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 # MongoDB connection string from environment variable
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-DB_NAME = os.getenv("DB_NAME", "fyproject")
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:5000")
+DB_NAME = os.getenv("DB_NAME", "facerecognition_db")
 
 # Create MongoDB client
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)

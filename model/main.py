@@ -7,8 +7,8 @@ import tensorflow as tf
 from typing import List, Tuple, Dict, Optional
 import numpy as np
 from pathlib import Path
-from preprocessingUnit import FacePreprocessor
-from model import FaceRecognitionModel, ModelConfig
+from model.preprocessingUnit import FacePreprocessor
+from model.model import FaceRecognitionModel, ModelConfig
 import zipfile
 import logging
 from sklearn.metrics.pairwise import cosine_similarity
@@ -18,7 +18,7 @@ import concurrent.futures
 class FaceClassifier:
     def __init__(self,
                  model_path: str = None,
-                 similarity_threshold: float = 0.75,
+                 similarity_threshold: float = 0.85,
                  device: str = 'cuda:0',
                  embedding_dim: int = 512,
                  use_arcface: bool = True):
