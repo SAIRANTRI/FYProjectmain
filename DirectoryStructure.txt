@@ -1,0 +1,109 @@
+Root Directory:
+FYProject/
+│
+├── .env
+├── .gitignore
+├── DockerFile
+├── package.json
+├── requirements.txt
+├── app/
+├── backend/
+├── frontend/
+├── model/
+1. app (Python FastAPI Backend)
+•	Purpose: Contains the FastAPI application for face classification APIs.
+•	Structure:
+app/
+├── main.py                  # FastAPI app entry point
+├── __pycache__/             # Python bytecode cache
+├── models/
+│   ├── schemas.py           # Pydantic schemas for API requests/responses
+│   └── __pycache__/
+├── routers/
+│   ├── classification.py    # API routes for classification
+│   └── __pycache__/
+├── services/
+│   └── ...                  # Service logic (e.g., classifier, cloudinary, mongodb)
+└── utils/
+    └── ...                  # Helper utilities (e.g., helpers.py)
+2. backend (Node.js/Express Backend)
+•	Purpose: Handles user authentication, file uploads, results, and database operations (MongoDB).
+•	Structure:
+backend/
+├── server.js                # Express server entry point
+├── controllers/
+│   ├── auth.controller.js
+│   ├── result.controller.js
+│   ├── upload.controller.js
+│   └── ...
+├── lib/
+│   └── ...                  # Utility libraries (e.g., db.js, cloudinary.js)
+├── middleware/
+│   └── ...                  # Middleware (e.g., auth, multer)
+├── models/
+│   ├── result.model.js      # Mongoose model for results
+│   ├── classificationResult.js
+│   └── ...
+└── routes/
+    ├── auth.routes.js
+    ├── user.routes.js
+    ├── upload.routes.js
+    ├── result.routes.js
+    └── ...
+3. frontend (React + Vite Frontend)
+•	Purpose: User interface for uploading images, viewing results, and managing profiles.
+•	Structure:
+frontend/
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package.json
+├── postcss.config.js
+├── README.md
+├── tailwind.config.js
+├── vite.config.js
+├── public/
+│   └── ...                  # Static assets
+└── src/
+    ├── App.css
+    ├── index.css
+    ├── main.jsx             # React entry point
+    ├── style.js             # Tailwind/utility styles
+    ├── Components/
+    │   ├── Footer.jsx
+    │   ├── Header.jsx
+    │   ├── HomeContent.jsx
+    │   ├── ProfilePage.jsx
+    │   ├── UploadComponent.jsx
+    │   └── ...
+    ├── routes/
+    │   ├── App.jsx
+    │   ├── Home.jsx
+    │   ├── Login.jsx
+    │   ├── Profile.jsx
+    │   ├── Signup.jsx
+    │   ├── Upload.jsx
+    │   └── ...
+    └── store/
+        ├── useUserStore.js
+        ├── useUploadStore.js
+        └── ...
+4. model (Python Face Recognition Model)
+•	Purpose: Contains the core face recognition and preprocessing logic.
+•	Structure:
+model/
+├── main.py                  # FaceClassifier class and CLI entry point
+├── model.py                 # FaceRecognitionModel and ModelConfig
+├── preprocessingUnit.py     # FacePreprocessor and image processing utilities
+└── __pycache__/             # Python bytecode cache
+5. Other Root Files
+•	.env: Environment variables for backend services.
+•	DockerFile: Docker configuration for containerization.
+•	package.json: Node.js dependencies (likely for backend).
+•	requirements.txt: Python dependencies for FastAPI and model.
+Summary of Responsibilities
+•	app/: FastAPI microservice for face classification (Python).
+•	backend/: Express.js API for user management, uploads, and results (Node.js, MongoDB).
+•	frontend/: React web app for user interaction (Vite, Tailwind CSS).
+•	model/: Deep learning model and preprocessing (Python, PyTorch/TensorFlow).
+

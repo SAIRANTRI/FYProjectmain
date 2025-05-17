@@ -28,21 +28,15 @@ const Home = () => {
             <div className="flex justify-center gap-4 mb-16">
             <NavLink to="/signup">
             <Button shadowcolor="black" className="text-white font-semibold
-        bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144]
-        hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161]
-        transition-all duration-300 ease-in-out text-lg px-6 py-3">
+              bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144]
+              hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161]
+              transition-all duration-300 ease-in-out text-lg px-6 py-3">
               
               Upload Memories
               
             </Button>
             </NavLink>
-            
-            <Button shadowcolor="black" className="text-white font-semibold
-        bg-gradient-to-r from-[#551f2b] via-[#3a1047] to-[#1e0144]
-        hover:from-[#6a2735] hover:via-[#4d1459] hover:to-[#2a0161]
-        transition-all duration-300 ease-in-out text-lg px-6 py-3">
-              Learn More
-            </Button>
+
             </div>
             
             <div className="grid md:grid-cols-3 gap-6 mt-12">

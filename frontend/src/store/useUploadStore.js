@@ -6,15 +6,16 @@ axios.defaults.withCredentials = true;
 const apiBase =
   import.meta.env.MODE === "development" ? "http://localhost:5000/api" : "/api";
 
-export const useUploadStore = create((set) => ({
+export const useUploadStore = create((set, get) => ({
   referenceImages: [],
   poolImages: [],
   loading: false,
   error: null,
+  uploadProgress: 0,
 
   // Upload reference images
   uploadReferenceImages: async (files) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, uploadProgress: 0 });
     try {
       const formData = new FormData();
       files.forEach((file) => formData.append("file", file));
@@ -24,44 +25,62 @@ export const useUploadStore = create((set) => ({
         formData,
         {
           headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            set({ uploadProgress: percentCompleted });
+          },
         }
       );
 
-      set((state) => ({
-        referenceImages: [...state.referenceImages, data.imageUrl],
-        loading: false,
-      }));
+      // Fetch all images after upload to ensure we have the latest data
+      await get().fetchUploadedImages();
+      
+      set({ loading: false, uploadProgress: 0 });
+      return data;
     } catch (error) {
       console.error("Error uploading reference images:", error);
       set({
         error:
           error.response?.data?.message || "Failed to upload reference images",
         loading: false,
+        uploadProgress: 0,
       });
+      throw error;
     }
   },
 
   // Upload pool images
   uploadPoolImages: async (files) => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, uploadProgress: 0 });
     try {
       const formData = new FormData();
       files.forEach((file) => formData.append("files", file));
 
       const { data } = await axios.post(`${apiBase}/upload/pool`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
+          set({ uploadProgress: percentCompleted });
+        },
       });
 
-      set((state) => ({
-        poolImages: [...state.poolImages, ...data.images],
-        loading: false,
-      }));
+      // Fetch all images after upload to ensure we have the latest data
+      await get().fetchUploadedImages();
+      
+      set({ loading: false, uploadProgress: 0 });
+      return data;
     } catch (error) {
       console.error("Error uploading pool images:", error);
       set({
         error: error.response?.data?.message || "Failed to upload pool images",
         loading: false,
+        uploadProgress: 0,
       });
+      throw error;
     }
   },
 
@@ -75,6 +94,7 @@ export const useUploadStore = create((set) => ({
         poolImages: data.poolImages,
         loading: false,
       });
+      return data;
     } catch (error) {
       console.error("Error fetching uploaded images:", error);
       set({
@@ -82,9 +102,10 @@ export const useUploadStore = create((set) => ({
           error.response?.data?.message || "Failed to fetch uploaded images",
         loading: false,
       });
+      throw error;
     }
   },
-  // Delete image
+  
   deleteImage: async (imageId, type) => {
     set({ loading: true, error: null });
     try {
@@ -109,9 +130,8 @@ export const useUploadStore = create((set) => ({
         error: error.response?.data?.message || "Failed to delete image",
         loading: false,
       });
+      throw error;
     }
   },
-
-  // Clear error
   clearError: () => set({ error: null }),
 }));

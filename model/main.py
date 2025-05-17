@@ -213,30 +213,9 @@ class FaceClassifier:
                                   input_dir: str,
                                   reference_image_path: str,
                                   output_dir: str) -> Tuple[List[str], List[str]]:
-        """
-        Classify images from a directory based on similarity to reference image
-        
-        Args:
-            input_dir: Directory containing input images
-            reference_image_path: Path to reference image
-            output_dir: Directory to save classified images
-            
-        Returns:
-            Tuple of (matched_files, unmatched_files)
-        """
         return self.classify_images(input_dir, reference_image_path, output_dir)
 
     def _process_single_image(self, image_path: str, reference_embedding: np.ndarray) -> bool:
-        """
-        Process a single image and determine if it matches the reference
-        
-        Args:
-            image_path: Path to the image
-            reference_embedding: Embedding of the reference face
-            
-        Returns:
-            True if match found, False otherwise
-        """
         try:
             # Use robust image loading instead of simple cv2.imread
             image = self._robust_image_load(image_path)
@@ -271,15 +250,6 @@ class FaceClassifier:
             return False
 
     def _robust_image_load(self, image_path):
-        """
-        Robust image loading function that tries multiple methods
-        
-        Args:
-            image_path: Path to the image file
-            
-        Returns:
-            Loaded image as numpy array in BGR format (OpenCV format) or None if failed
-        """
         # First try: standard OpenCV loading
         image = cv2.imread(image_path)
         if image is not None:
@@ -344,13 +314,6 @@ class FaceClassifier:
     def create_output_zip(self,
                           output_dir: str,
                           zip_path: str):
-        """
-        Create a zip file of the classified images
-
-        Args:
-            output_dir: Directory containing classified images
-            zip_path: Path where zip file should be created
-        """
         self.logger.info(f"Creating zip file: {zip_path}")
 
         with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -374,13 +337,6 @@ class FaceClassifier:
         self.logger.info(f"Zip file created: {zip_path}")
 
     def process_single_image(self, image_path: str, visualize: bool = False) -> None:
-        """
-        Process a single image and visualize preprocessing steps
-        
-        Args:
-            image_path: Path to the input image
-            visualize: If True, save visualization of preprocessing steps
-        """
         image = cv2.imread(image_path)
         if image is None:
             self.logger.error(f"Failed to load image: {image_path}")
